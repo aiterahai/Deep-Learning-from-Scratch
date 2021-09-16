@@ -333,3 +333,116 @@ $$
     np.dot() 행렬 곱을 계산합니다.
 
     np.dot(A, B)와 np.dot(B, A)는 다른 값이 될 수 있습니다.
+    
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/bd94fa40-38fd-11ea-8a14-7ddb1d5b4b35/%ED%96%89%EB%A0%AC%ED%98%95%EC%83%81%EA%B3%B1.png)
+    
+    행렬A의 1번째 차원의 원소 수 와 행렬B의 0번째 차원의 원소 수가 같아야합니다.
+    
+    ![image-20210916230725737](Image\np_3.png)
+    
+  * **신경망에서의 행렬의 곱**
+  
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/54edf130-38fe-11ea-8a14-7ddb1d5b4b35/%EC%8B%A0%EA%B2%BD%EB%A7%9D%ED%96%89%EB%A0%AC%EA%B3%B1.png)
+  
+    ![image-20210916230938515](Image\np_4.png)
+  
+* **3층 신경망 구현**
+
+  * **표기법**
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/f88732c0-38fe-11ea-b428-5dc446614305/%EA%B0%80%EC%A4%91%EC%B9%98%ED%91%9C%EA%B8%B0.png)
+
+  * **각 층의 신호 전달 구현**
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/4f6a4300-39fb-11ea-b6b9-5148bcc9f2c4/%EC%9E%85%EB%A0%A5%EC%B8%B5%EC%97%90%EC%84%9C1%EC%B8%B5%EB%B3%B4%EC%B6%A9.png)
+
+    은닉층에서의 가중치의 합을 a로 표기하고 활성화 함수 h()로 변환된 신호를 z로 표현합니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/b18ace60-39fb-11ea-b6b9-5148bcc9f2c4/a1.png)
+
+    1층의 가중치 부분을 행렬식으로 나타낸다면 아래 그림처럼 됩니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/70bc13d0-39fb-11ea-b6b9-5148bcc9f2c4/1%EC%B8%B5%EA%B0%80%EC%A4%91%EC%B9%98%ED%96%89%EB%A0%AC%EC%8B%9D.png)
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/7bede9c0-39fd-11ea-9694-9dbcffa449db/%EA%B0%80%EC%A4%91%EC%B9%98%ED%96%89%EB%A0%AC.PNG)
+
+    ![image-20210916231337228](Image\NN_1.png)
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/f77f36c0-39fd-11ea-9304-8d735a4c8d2b/1%EC%B8%B5%EC%97%90%EC%84%9C-2%EC%B8%B5%EC%9C%BC%EB%A1%9C.png)
+
+    ![image-20210916231432331](Image\NN_2.png)
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/e3844950-3a00-11ea-85c7-af1be234c277/%EC%B6%9C%EB%A0%A5%EC%B8%B5%EC%9C%BC%EB%A1%9C-%EC%8B%A0%ED%98%B8-%EC%A0%84%EB%8B%AC.png)
+
+    ![image-20210916231530378](Image\NN_3.png)
+
+    일반적으로 회귀에서는 출력층의 활성화 함수를 항등함수로, 바이너리 클래스 분류에서는 시그모이드 함수를, 다중 클래스 분류에서는 소프트맥스 함수를
+
+    사용한다고 합니다.
+
+    
+
+  * **3층 신경망 구현**
+
+    ![image-20210916231741342](Image\NN_4.png)
+
+* **출력층 설계**
+
+  * **항등 함수와 소프트맥스 함수**
+
+    - 항등함수(identity function): 입력을 그대로 출력
+
+      ![img](https://media.vlpt.us/post-images/dscwinterstudy/98bd1470-3a04-11ea-a976-bbc34e4880b0/%ED%95%AD%EB%93%B1%ED%95%A8%EC%88%98.png)
+
+    - 소프트맥스 함수(softmax function):
+
+      ![img](https://media.vlpt.us/post-images/dscwinterstudy/a70d9ad0-382a-11ea-83b1-3b44e26c4216/%EC%86%8C%ED%94%84%ED%8A%B8%EB%A7%A5%EC%8A%A4.PNG)
+
+      소프트맥스 함수의 분자는 입력 신호의 지수 함수, 분모는 모든 입력 신호의 지수 함수의 합으로 이루어져 있습니다.\
+
+      ```python
+      def softmax(a):
+        exp_a = np.exp(a)
+        sum_exp_a = np.sum(exp_a)
+        y = exp_a / sum_exp_a
+        
+        return y
+      ```
+
+      ![img](https://media.vlpt.us/post-images/dscwinterstudy/8c838090-3a04-11ea-a976-bbc34e4880b0/%EC%86%8C%ED%94%84%ED%8A%B8%EB%A7%A5%EC%8A%A4-%ED%95%A8%EC%88%98.png)
+
+      * **소프트맥스 함수 구현의 주의점**
+
+        소프트맥스는 지수함수를 사용하기 때문에, Overflow의 문제가 발생해서 수치가 불안정해질 수 있다는 문제점이 있습니다.
+
+        ![img](https://media.vlpt.us/post-images/dscwinterstudy/7fbb6850-3a04-11ea-a976-bbc34e4880b0/%EC%86%8C%ED%94%84%ED%8A%B8%EB%A7%A5%EC%8A%A4%ED%95%A8%EC%88%98%EC%88%98%EC%A0%95.png)
+
+        소프트맥스의 지수 함수를 계산할 때 어떤 정수를 더 하거나 빼도 결과는 바뀌지 않는다는 특성을 이용해 식을 수정합니다,
+
+        오버플로우를 막기위해 C에 최댓값을 넣는게 일반적입니다.
+
+        ```python
+        def softmax(a):
+          c = np.max(a)
+          exp_a = np.exp(a-c)
+          sum_exp_a = np.sum(exp_a)
+          y = exp_a / sum_exp_a
+          
+          return y
+        ```
+
+      * **소프트맥스 함수의 특징**
+
+        * 출력값은 0과 1사이의 실수입니다.
+
+        * 출력의 총합이 1입니다. (확률로 해석할 수 있습니다.)
+
+        * 지수함수가 단조 증가 함수 이기 때문에 소프트맥스 함수를 적용해도 각 원소의 대소 관계는 변하지 않습니다.
+
+          따라서 신경망으로 분류할 때에 출력층의 소프트맥스 함수를 생략해도 됩니다.
+
+      * **출력층의 뉴런 수**
+
+        보통 분류 문제 에서는 분류하고 싶은 클래스 수로 뉴런 수를 설정하는 것이 일반적입니다.
+
+* **MNIST 숫자 인식**
