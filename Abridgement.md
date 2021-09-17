@@ -238,10 +238,10 @@ $$
   단층 퍼셉트론은 직선형 영역만 표현할 수 있고, 다층 퍼셉트론은 비선형 영역도 표현할 수 있습니다.
 
   다층 퍼셉트론은 이론상 컴퓨터를 표현할 수 있습니다.
+  
+  
 
-
-
-## 신경망
+# 신경망
 
 * **신경망이란?**
 
@@ -446,3 +446,314 @@ $$
         보통 분류 문제 에서는 분류하고 싶은 클래스 수로 뉴런 수를 설정하는 것이 일반적입니다.
 
 * **MNIST 숫자 인식**
+
+  * **신경망의 문제 해결 단계**
+    1. 학습 : 학습 데이터를 사용해 가중치 매개변수를 학습합니다.
+    2. 추론 : 학습한 매개변수를 사용하여 입력 데이터를 분류합니다.
+
+  **신경망의 순전파(forward propagation)**: 이미 학습이 된 매개변수로 입력 데이터를 분류하는 추론 과정.
+
+  * **MNIST 데이터셋**
+
+    * 28*28 크기의 회색조 이미지입니다.
+
+    * 각 픽셀은 0~255까지의 값을 가지고 취합니다.
+
+    * 각 이미지에 실제 의미하는 숫자가 레이블로 붙어 있습니다.
+
+    * load_mnist에는 3가지의 파라미터가 있습니다.
+
+      - normalize :
+        - 입력 이미지의 픽셀 값을 0 ~ 1로 정규화합니다.
+        - False : 0 ~ 255 사이 값 유지합니다.
+      - flatten :
+        - 입력 이미지를 784개의 원소를 지닌 1차원 배열로 만듭니다.
+        - False : 입력 이미지를 1 * 28 * 28 의 3차원 배열로 설정합니다.
+      - one_hot_label
+        - 데이터를 원-핫-인코딩 형태로 저장합니다. (정답을 뜻하는 원소만 1. 나머지는 모두 0)
+        - False : ‘7’이나 ‘2’와 같이 숫자 형태의 레이블을 저장합니다.
+
+      ![image-20210917213134486](C:\Users\terra\Desktop\Git\Deep-Learning-from-Scratch\Image\MNIST_1.png)
+
+      ![image-20210917213112823](Image\MNIST_2.png)
+
+      데이터 셋을 다운 받은 후 이미지를 출력을 하면 28*28 크기의 회색조 이미지가 출력이 됩니다.
+
+  * **신경망의 추론 처리**
+
+    ![image-20210917214522680](Image\MNIST_3.png)
+
+    이 소스코드를 실행시켜 보면, 0.9352의 정확도를 가집니다.
+
+  * **배치 처리**
+
+    이미지 여러 장을 한꺼번에 입력하는 경우
+
+    **배치(batch) : 하나로 묶은 입력 데이터**
+
+    이미지 100개를 묶어 predict() 함수에 한번에 넘긴 경우 :
+
+    * ![img](https://media.vlpt.us/post-images/dscwinterstudy/ee9dbaa0-3a15-11ea-a586-f780b0702393/%EB%B0%B0%EC%B9%98.png)
+
+    x[0]와 y[0]에는 0번째 이미지와 그 추론 결과가, x[1]과 y[1]에는 1번째의 이미지와 그 결과가 저장됩니다.
+
+    또한 배치로 한꺼번에 처리를 하면 효율성이 올라갑니다.
+
+    * 이미지 한장당 처리 시간을 대폭 줄여줍니다.
+    * 디스크 I/O가 줄면서 데이터가 병목되는 지점이 줄어듭니다.
+
+    ```python
+    x, t = get_data() 
+    network = init_network()
+    
+    batch_size = 100
+    accuracy_cnt = 0
+    
+    for i in range(0, len(x), batch_size):
+    	x_batch = x[i:i+batch_size]
+    	y_batch = predict(network, x_batch)
+    	p = np.argmax(y_batch, axis=1)
+    	accuracy_cnt += np.sum(p == t[t:t+batch_size])
+    		
+    print("Accuracy:" + str(float(accuracy_cnt) / len(x)))
+    ```
+
+
+
+# 신경망 학습
+
+* **데이터에서 학습한다 !**
+
+  * **데이터 주도 학습**
+
+    머신러닝이란, 데이터에서 답을 찾고 데이터에서 패턴을 발견하고 데이터로 이야기를 만드는 것입니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/ba47a280-4199-11ea-bed1-737062fffe57/image.png)
+
+    만약, 5를 인식하고 싶다면 이미지에서 특징을 추출하고 그 특징의 패턴을 기계학습 기술로 학습하는 방법이 있습니다.
+
+    여기서의 특징이란, 입력 데이터에서 본질적인 데이터를 정확하게 추출할 수 있도록 설계된 변환기를 가르킵니다.
+
+    Computer Vision 분야에서는 SIFT, SURF HOG 등의 특징을 사용하고, 이들의 특징을 이용해서 이미지 데이터를 벡터로 변환한 분류기법인
+
+    SVM, KNN 등으로 학습이 가능합니다.
+
+    이 방식에서 더욱 발전하여 이후에는 완전히 데이터를 기계가 학습하는 방식의 딥러닝을 활용하였습니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/651fbfd0-419a-11ea-bfff-032d2a744144/image.png)
+
+  * **훈련 데이터와 시험 데이터**
+
+    머신러닝 실험 시 우선 훈련 데이터만 사용하여 학습하면서 최적의 매개변수를 찾습니다.
+
+    그 이유는 범용 능력, 즉 아직 보지 못한 데이터로도 문제를 올바르게 풀어내지 못한 능력을 제대로 평가하기 위함입니다.
+
+    
+
+    오버피팅(Overfitting) : 모델이 실제 분포보다 학습 샘플들 분포에 더 근접하게 학습되는 현상
+
+* **손실 함수**
+
+  지금 얼마나 행복한지에 대한 답은 아주 행복하다 혹은 그리 행복한 거 같지 않다라고 막연한 답이 돌어오는 것이 보통입니다.
+
+  그러나 누군가 수치로 10.23 만큼 행복하다라고 답하면 질문자는 당황할 것입니다.
+
+  이 사람은 자신의 행복을 행복 지표를 이용해 측정합니다.
+
+  
+
+  이와 같이 신경망 학습에도 하나의 지표가 있습니다.
+
+  그 지표를 가장 좋게 만들어주는 가중치 매개변수의 값을 탐색하는 것이 목적입니다.
+
+  신경망 학습에서는 손실 함수가 바로 그 지표입니다.
+
+  
+
+  손실 함수 : 신경망 학습에서 사용하는 지표 (보통 평균 제곱 오차와 교차 엔트로피 오차를 사용합니다)
+
+  * **평균 제곱 오차**
+
+    회귀문제에서 주로 사용되는 평가 지표입니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/0c2c2490-419a-11ea-9479-ad3ff669a3cd/image.png)
+
+    오차가 더 작은 경우 정답에 더욱 가깝다는 것을 알 수 있습니다.
+
+    ```python
+    def sum_squares_error(y, t):
+    	return 0.5 * np.sum((y-t)**2)
+    ```
+
+    
+
+  * **교차 엔트로피 오차**
+
+    분류문제에서 주로 사용되는 평가 지표입니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/b176eb30-42a1-11ea-a67c-c756fb257db9/e-4.2.png)
+
+    여기서 log는 밑이 e인 자연로그 입니다. 
+
+    y_k는 신경망의 출력, t_k는 정답 레이블입니다.
+
+    신경망 출력이 0.6이라면 교차 엔트로피 오차는 -log0.6으로 결과는 0.51이 됩니다.
+
+    즉 교차 엔트로피 오차는 정답일 때의 출력이 전체 값을 정하게 됩니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/771df610-419b-11ea-a3b8-fd5b14e3378a/image.png)
+
+    ```python
+    def cross_entropy_error(y, t):
+        delta = 1e-7
+        return -np.sum(t * np.log(y + delta))
+    ```
+
+    
+
+  * **미니배치 학습**
+
+    MNIST 데이터셋은 훈련 데이터가 60,000개 이므로 신경망 학습에서 훈련 데이터로부터 일부만 골라 학습을 수행합니다.
+
+    그 일부가 바로 미니배치이며 가령 60,000장의 훈련 데이터 중에서 100장을 무작위로 뽑은 학습 방법이 미니배치 학습입니다.
+
+    
+
+  * **손실 함수를 설정하는 이유**
+
+    손실 함수를 사용하는 이유는 정확도를 끌어내는 매개변수 값을 찾는 것이 우리의 목표이기 때문입니다.
+
+    정확도라는 지표를 두고 손실 함수의 값을 사용하는 이유는 정확도를 지표로 삼으면 미분 값이 대부분의 장소에서 0이 되어 매개변수를 갱신할 수 없기
+
+    때문입니다.
+
+  
+
+* **수치 미분**
+
+  * **미분**
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/44ad4090-419c-11ea-bed1-737062fffe57/image.png)
+
+    ```python
+    def numerical_diff(f, x):
+        h = 1e-4
+        return (f(x+h) - f(x-h)) / (2*h)
+    ```
+
+  * **수치 미분의 예**
+
+    ```python
+    def function(x):
+    
+        return 0.01*x**2 + 0.1*x 
+    ```
+
+    계산된 미분 값은 x에 대한 f(x)의 변화량, 즉 함수의 기울기에 해당합니다.
+
+    그리고 x가 5일때와 10일 때의 진정한 미분은 0.2와 0.3입니다.
+
+  * **편미분**
+
+    편미분 : 변수가 여러개인 함수에 대한 미분
+
+    앞에와 달리 변수가 2개라는 점에 주의를 해야 합니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/6c2996f0-419c-11ea-a3b8-fd5b14e3378a/image.png)
+
+    ```python
+    def function(x):
+    	return x[0]**2 + x[1]**2
+    ```
+
+    인수 x는 넘파이 배열이라고 가정하며 넘파이 배열의 각 원소를 제곱하고 그 합을 간단한 형태로 구현할 수 있습니다.
+
+  
+
+* **기울기**
+
+  ```python
+  def numerical_gradient(f, x):
+      h = 1e-4
+      grad = np.zeros_like(x)
+      
+      for idx in range(x.size):
+          tmp_val = x[idx]
+          x[idx] = tmp_val+h
+          fxh1 = f(x)
+          x[idx] = tmp_val - h
+          fxh2 = f(x)
+          
+          grad[idx] = (fxh1 - fxh2) / (2*h)
+          x[idx] = tmp_val
+          
+      return grad
+  ```
+
+  이 함수는 복잡해 보이지만, 동작 방식은 변수가 하나일때의 수치 미분과 거의 동일합니다.
+
+  f는 함수, x는 넘파이 배열이므로 넘파이 배열 x의 각 원소에 대하서 수치 미분을 구합니다.
+
+  
+
+  기울기는 각 지점에서 낮아지는 방향을 가르킵니다.
+
+  즉, 기울기가 가리키는 쪽은 각 장소에서 함수의 출력 값을 가장 크게 줄이는 방향입니다.
+
+  * **경사 하강법**
+
+    신경망에서 최적의 매개변수 중 최적이란 손실 함수가 최솟값이 될 때의 매개변수 값 입니다.
+
+    하지만 일반적인 손실함수는 복잡하고 최솟값이 되는 곳을 찾기 어렵습니다.
+
+    이런 상황에서 기울기를 잘 이용해 함수의 최솟값(또는 가능한 작은 값)을 찾으려는 것이 경사 하강법입니다.
+
+    
+
+    각 지점에서 함수의 값을 낮추려고 제시하는 지표가 기울기입니다.
+
+    경사법을 수식으로 나타낼 때 갱신하는 양을 학습률(Learning rate)이라고 표현합니다.
+
+    즉, 한 번의 학습으로 얼마만큼 학습해야 할지를 정하는 것이 학습률입니다.
+
+    ```python
+    def gradient_descent(f, init_x, lr=0.01, step_num=100):
+        x = init_x
+        x_history = []
+        for i in range(step_num):
+            x_history.append( x.copy() )
+            grad = numerical_gradient(f, x)
+            x -= lr * grad
+        return x, np.array(x_history)
+    ```
+
+    학습률이 너무 크면 발산하고, 너무 작으면 수렴하는데 많은 학습을 해야 합니다.
+
+    따라서 적당한 학습률을 정해줘야 합니다.
+
+  * **신경망에서의 기울기**
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/8865d4a0-419c-11ea-af2e-4fe713384e5c/image.png)
+
+    신경망 학습에서의 기울기는 가중치 매개변수에 대한 손실 함수의 기울기입니다.
+
+    가중치 W, 손실 함수가 L인 신경망의 경우 편미분을 합니다.
+
+    그리고 손실 함수 L이 얼마나 변하는지에 대해서 알려주는 것이 w_11입니다.
+
+    ![image-20210917232353772](Image\GD_1.png)
+
+    기울기를 구하는 코드 :
+
+    ```python
+    class simpleNet:
+        def __init__(self):
+            self.W = np.random.randn(2,3)
+        def predict(self, x):
+            return np.dot(x, self.W)
+        def loss(self, x, t):
+            z = self.predict(x)
+            y = softmax(z)
+            loss = cross_entropy_error(y, t)
+    return loss
+    ```
