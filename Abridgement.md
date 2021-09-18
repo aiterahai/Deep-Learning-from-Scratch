@@ -757,3 +757,322 @@ $$
             loss = cross_entropy_error(y, t)
     return loss
     ```
+  
+  
+  
+* **학습 알고리즘 구현**
+
+  신경망에는 적응 가능한 가중치와 편향이 있고, 이 가중치와 편향을 훈련 데이터에 적응하도록 조정하는 과정을 학습이라고 합니다.
+
+  1. 미니배치 : 훈련 데이터 중 일부를 무작위로 가져옵니다. 미니배치의 손실 함수 값을 줄이는 것이 목표입니다.
+
+  2. 기울기 산출 : 미니배치의 손실 함수 값을 줄이기 위해 각 가중치 매개변수의 기울기를 구합니다. 기울기는 손실 함수의 값을
+
+     가장 적게 하는 방향을 제시합니다.
+
+  3. 매개변수 갱신 : 가중치 매개변수를 기울기 방향으로 갱신합니다.
+
+  4. 1~3단계를 반복합니다.
+
+  하강법으로 매개변수를 갱신하는 방법이며 이때 데이터를 미니배치로 무작위로 선정하기 때문에
+
+  확률적 경사 하강법 stochastic gradient descent, SGD라고 부릅니다.
+
+  * **2층 신경망 클래스 구현**
+
+    ```python
+    import sys
+    import os
+    import numpy as np
+    sys.path.append(os.pardir)
+    from common.functions import sigmoid, softmax, cross_entropy_error
+    from common.gradient import numerical_gradient
+    
+    
+    class TwoLayerNet:
+        def __init__(self, input_size, hidden_size, output_size,
+                     weight_init_std=0.01):
+            self.params = {}
+            self.params['W1'] = weight_init_std * np.random.randn(input_size, hidden_size)
+                np.random.randn(input_size, hidden_size)
+            self.params['b1'] = np.zeros(hidden_size)
+            self.params['W2'] = weight_init_std * np.random.randn(hidden_size, output_size)
+                np.random.randn(hidden_size, output_size)
+            self.params['b2'] = np.zeros(output_size)
+    
+        def predict(self, x):
+            W1, W2 = self.params['W1'], self.params['W2']
+            b1, b2 = self.params['b1'], self.params['b2']
+    
+            a1 = np.dot(x, W1) + b1
+            z1 = sigmoid(a1)
+            a2 = np.dot(z1, W2) + b2
+            y = softmax(a2)
+    
+            return y
+    
+        def loss(self, x, t):
+            y = self.predict(x)
+    
+            return cross_entropy_error(y, t)
+    
+        def accuracy(self, x, t):
+            y = self.predict(x)
+            y = np.argmax(y, axis=1)
+            t = np.argmax(t, axis=1)
+    
+            accuracy = np.sum(y == t) / float(x.shape[0])
+            return accuracy
+    
+        def numerical_gradient(self, x, t):
+            loss_W = lambda W: self.loss(x, t)
+    
+            grads = {}
+            grads['W1'] = numerical_gradient(loss_W, self.params['W1'])
+            grads['b1'] = numerical_gradient(loss_W, self.params['b1'])
+            grads['W2'] = numerical_gradient(loss_W, self.params['W2'])
+            grads['b2'] = numerical_gradient(loss_W, self.params['b2'])
+    
+            return grads
+    
+    
+    if __name__ == '__main__':
+        net = TwoLayerNet(input_size=784, hidden_size=100, output_size=10)
+        print(net.params['W1'].shape)
+        print(net.params['b1'].shape)
+        print(net.params['W2'].shape)
+        print(net.params['b2'].shape)
+    
+        x = np.random.rand(100, 784)
+        t = np.random.rand(100, 10)
+    
+        grads = net.numerical_gradient(x, t)
+        print(grads['W1'].shape)
+        print(grads['b1'].shape)
+        print(grads['W2'].shape)
+        print(grads['b2'].shape)
+    ```
+
+  * **미니배치 학습 구현**
+
+    미니배치 학습이란 훈련 데이터 중 일부를 무작위로 꺼내고, 그 미니배치에 대해서 경사하강법으로 매개변수를 갱신하는 것 
+
+    입니다. TwoLayerNet으로 학습을 수행합니다.
+
+    ```python
+    import sys, os
+    sys.path.append(os.pardir)
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from dataset.mnist import load_mnist
+    from two_layer_net import TwoLayerNet
+    
+    (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)
+    
+    network = TwoLayerNet(input_size=784, hidden_size=50, output_size=10)
+    
+    iters_num = 10000
+    train_size = x_train.shape[0]
+    batch_size = 100
+    learning_rate = 0.1
+    
+    train_loss_list = []
+    train_acc_list = []
+    test_acc_list = []
+    
+    iter_per_epoch = max(train_size / batch_size, 1)
+    
+    for i in range(iters_num):
+        batch_mask = np.random.choice(train_size, batch_size)
+        x_batch = x_train[batch_mask]
+        t_batch = t_train[batch_mask]
+        
+        grad = network.gradient(x_batch, t_batch)
+        
+        for key in ('W1', 'b1', 'W2', 'b2'):
+            network.params[key] -= learning_rate * grad[key]
+        
+        loss = network.loss(x_batch, t_batch)
+        train_loss_list.append(loss)
+    ```
+
+    위 코드를 통하여 신경망의 가중치 매개변수가 학습 횟수가 늘어나면서 손실 함수의 값이 줄어드는 것을 확인할 수 있습니다.
+
+    즉, 신경망의 가중치 매개변수가 서서히 데이터에 적응하고 있음을 의미합니다.
+
+    신경망이 학습을 하고있다는 것을 알 수 있습니다.
+
+    
+
+    데이터를 반복적으로 학습을 하여 최적의 가중치 매개변수로 서서히 다가가고 있음을 알 수 있습니다.
+
+  * **시험 데이터로 평가하기**
+
+    신경망 학습의 목표는 범용적인 능력을 익히는 것 입니다.
+
+    오버피팅을 일으키지 않는지 확인해야합니다.
+
+    아래 코드는 평가를 하기 위한 코드 입니다.
+
+    ```python
+    import sys, os
+    sys.path.append(os.pardir)
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from dataset.mnist import load_mnist
+    from two_layer_net import TwoLayerNet
+    
+    (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)
+    
+    network = TwoLayerNet(input_size=784, hidden_size=50, output_size=10)
+    
+    iters_num = 10000
+    train_size = x_train.shape[0]
+    batch_size = 100
+    learning_rate = 0.1
+    
+    train_loss_list = []
+    train_acc_list = []
+    test_acc_list = []
+    
+    iter_per_epoch = max(train_size / batch_size, 1)
+    
+    for i in range(iters_num):
+        batch_mask = np.random.choice(train_size, batch_size)
+        x_batch = x_train[batch_mask]
+        t_batch = t_train[batch_mask]
+        
+        grad = network.gradient(x_batch, t_batch)
+        
+        for key in ('W1', 'b1', 'W2', 'b2'):
+            network.params[key] -= learning_rate * grad[key]
+        
+        loss = network.loss(x_batch, t_batch)
+        train_loss_list.append(loss)
+        
+        if i % iter_per_epoch == 0:
+            train_acc = network.accuracy(x_train, t_train)
+            test_acc = network.accuracy(x_test, t_test)
+            train_acc_list.append(train_acc)
+            test_acc_list.append(test_acc)
+            print("train acc, test acc | " + str(train_acc) + ", " + str(test_acc))
+    ```
+
+
+
+## 오차역전파
+
+수치 미분은 단순하고 구현하기도 쉽다는 장점이 있지만, 계산 시간이 오래 걸린다는 것이 단점입니다.
+
+오차역전파법 backpropagation은 가중치 매개변수의 기울기를 효율적으로 계산할 수 있습니다.
+
+오차역전파법을 제대로 이해하는 방법은 두 가지가 있습니다.
+
+1. 수식을 통한 이해
+2. 계산 그래프를 통한 이해
+
+* **계산 그래프**
+
+  계산 그래프 computational gragh 는 계산 과정을 그래프로 나타낸 것 입니다.
+
+  그래프는 복수의 노드 node와 엣지 edge로 표현됩니다.
+
+  * **계산 그래프로 풀다**
+
+    >문제 1
+    >
+    >현빈 군은 슈퍼에서 1개에 100원인 사과를 2개 샀다.
+    >
+    >이때 지불 금액을 구하자.
+    >
+    >단, 소비세가 10% 부과된다.
+
+    계산 그래프는 계산 과정을 노트와 화살표(엣지)로 표현됩니다.
+
+    계산 그래프로 푼 문제 1의 답 :
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/50a22620-41a3-11ea-b40d-6705eaadcebd/fig-5-1.png)
+
+    계산 그래프로 풀어본 문제 1의 답 : 사과의 개수와 소비세를 변수로 취급해서 원 밖에 표기합니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/6ca21e20-41a3-11ea-b40d-6705eaadcebd/fig-5-2.png)
+
+    > 문제 2
+    >
+    > 현빈 군은 슈퍼에서 사과를 2개, 귤을 3개 샀다.
+    >
+    > 사과는 1개에 100원, 귤을 1개에 150원이다.
+    >
+    > 소비세가 10% 일 때 지불 금액을 고르자.
+
+    계산 그래프로 풀어본 문제 2의 답
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/848058e0-41a3-11ea-b40d-6705eaadcebd/fig-5-3.png)
+
+    계산 그래프를 이용한 문제 풀이는 다음 흐름으로 진행됩니다.
+
+    1. 계산그래프를 구성합니다.
+    2. 그래프에서 계산을 왼쪽에서 오른쪽으로 진행합니다.
+
+    여기서 계산을 왼쪽에서 오른쪽으로 진행하는 단계를 순전파 forward propagation 이라고 합니다.
+
+    순전파는 계산 그래프의 출발점부터 종착점으로의 전파입니다.
+
+    오른쪽에서 왼쪽으로의 전파는 역전파라고 부릅니다.
+
+    여기서 말하는 역전파는 이후 미분을 계산할 때 중요한 역활을 합니다.
+
+    
+
+  * **국소적 계산**
+
+    계산 그래프의 특징은 국소적 계산을 전파함으로써 최종 결과를 얻는다는 점에 있습니다.
+
+    국소적이란, 자신과 직접 관계된 작은 범위라는 뜻 입니다.
+
+    국소적 계산은 결국, 전체에서 어떤 일이 벌어지든 상관없이 자신과 관계된 정보만으로 결과를 출력할 수 있다는 것 입니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/d846ba50-41a3-11ea-9e70-43b4cf1f0bf4/fig-5-4.png)
+
+    계산 그래프의 각 노드에서의 계산은 국소적입니다.
+
+    계산 그래프는 국소적 계산에 집중합니다.
+
+    전체 계산이 복잡하더라도 각 단계에서 하는 일은 해당 노드의 국소적 계산입니다.
+
+    국소적인 계산은 단순하지만, 그 결과를 전달함으로써 전체를 구성하는 복잡한 계산을 할 수 있습니다.
+
+    
+
+  * **왜 계산 그래프로 푸는가?**
+
+    계산 그래프의 이점.
+
+    1. 국소적 계산
+    2. 계산 그래프는 중간 계산 결과를 모두 보관할 수 있다.
+
+    실제 계산 그래프를 사용하는 가장 큰 이유는 역전파를 통해 **미분**을 효율적으로 할 수 있다는 점에 있습니다.
+
+    문제 1은 사과를 2개 사서 소비세를 포함한 최종 금액을 구하는 것 입니다.
+
+    여기에서 만약 사과 가격이 오르면 최종 금액에 어떤 영향을 끼치는지 알고 싶다면, 이는 사과 가격에 대한 지불 금액의
+
+    미분을 구하는 문제에 해당합니다.
+
+    계산 그래프 상의 역전파에 의해 미분을 구할 수 있습니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/db6426f0-41a3-11ea-9e70-43b4cf1f0bf4/fig-5-5.png)
+
+    역전파는 순전파와는 반대 방향으로 굵은 화살표로 그립니다.
+
+    이 전파는 국소적 미분을 전달하고, 그 미분 값은 화살표의 아래에 적습니다.
+
+    이 결과로 부터 사과 가격에 대한 지불 금액의 미분 값을 2.2라고 할 수 있습니다.
+
+    사과가 1원이 오르면 총 가격은 2.2원이 오른다는 의미입니다.
+
+    소비세에 대한 지불 금액의 미분이나, 사과 개수에 대한 지불 금액의 미분도 같은 순서로 구할 수 있습니다.
+
+    그리고 그 때는 미분 결과를 공유할 수 있어 다수의 미분을 효율적으로 계산할 수 있습니다.
+
+    이처럼 계산 그래프의 이점은, 순전파와 역전파를 통해서 각 변수의 미분을 효율적으로 구할 수 있다는 점에 있습니다.
