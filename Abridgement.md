@@ -1325,7 +1325,74 @@ $$
     이것은 소비세와 사과 가격이 같은 양만큼 오르면 최종 금액에는 소비세가 200의 크기로, 사과 가격이 2,2크기로 영향을 준다고
 
     해석할 수 있습니다.
+  
+* **활성화 함수 계층 구현하기**
+
+  * **ReLU 계층**
+
+    활성화 함수로 사용되는 ReLU의 수식은 다음과 같습니다.
+    $$
+    y =
+    \begin{cases}
+    x\;\;\;(x>0)\\
+    0\;\;\;(x\le0)
+    \end{cases}
+    $$
+    위 식에서 x에 대한 y의 미분은 아래 처럼 구합니다.
+    $$
+    {\delta y\over \delta x} = 
+    \begin{cases}
+    1\;\;\;(x>0)\\
+    0\;\;\;(x\le0)
+    \end{cases}
+    $$
+    위에서와 같이 순전파 때의 입력이 x가 0보다 크면 역전파는 상류의 값을 그대로 하류로 흘립니다.
+
+    반면, 순전파 때 x가 0 이하면 역전파 때는 하류로 신호를 보내지 않습니다.
+
     
+
+    파이썬 소스는 아래와 같이 짤 수 있습니다.
+
+    ```python
+    class Relu:
+        def __init__(self):
+            self.mask = None
     
+        def forward(self, x):
+            self.mask = (x <= 0)
+            out = x.copy()
+            out[self.mask] = 0
     
+            return out
+    
+        def backward(self, dout):
+            dout[self.mask] = 0
+            dx = dout
+    
+            return dx
+    ```
+
+    Relu 클래스는 mask라는 인스턴스 변수를 가집니다.
+
+    mask는 True/False로 구성된 넘파이 배열로, 순전파의 입력인 x의 원소 값이 0 이하인 인덱스는 True, 그 외는 False로
+
+    유지합니다. mask 변수는 True False로 구성된 넘파이 배열을 유지합니다.
+
+  * **Sigmoid 계층**
+
+    시그모이드 함수는 다음 식을 의미하는 함수입니다.
+    $$
+    y = {1\over1 + exp(-x)}
+    $$
+    이를 계산 그래프로 그리면 아래 그림처럼 됩니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/12ace2a0-41a9-11ea-8248-4760a63b1878/fig-5-19.png)
+
+    위 그림에는 x와 +노드 말고도 exp와 /노드가 새롭게 등장합니다.
+
+    exp노드는 y = exp(x)계산을 구행하고 / 노드는 y = 1/x를 수행합니다.
+
+    그림과 같이 식의 계산은 국소적 계산의 전파로 이뤄집니다.
+
     
