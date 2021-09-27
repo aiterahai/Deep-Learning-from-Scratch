@@ -1396,3 +1396,211 @@ $$
     그림과 같이 식의 계산은 국소적 계산의 전파로 이뤄집니다.
 
     
+
+    **1 단계**
+
+    ​	'/' 노드, 즉 y = 1/x 을 미분하면 다음 식이 됩니다.
+    $$
+    {\delta y\over \delta x} = -{1\over x^2}\\
+    = -y^2
+    $$
+    ​	위 식에 따르면 역전파 때는 상류에서 흘러온 값에 -y^2를 곱해서 하류로 전달합니다.
+
+    ​	계산 그래프에서는 다음과 같습니다.
+
+    ​	![img](https://media.vlpt.us/post-images/dscwinterstudy/ab2468f0-41a9-11ea-886e-51c0587d4327/fig-5-191.png)
+
+    **2 단계**
+
+    ​	'+' 노드는 상류의 값을 여과 없이 하류로 내보내는 게 다입니다.
+
+    ​	계산 그래프에서는 다음과 같습니다.
+
+    ​	![img](https://media.vlpt.us/post-images/dscwinterstudy/c1235c60-41a9-11ea-bc96-9d2b4aed3aec/fig-5-192.png)
+
+    **3 단계**
+
+    ​	'exp' 노드는 y = exp(x) 연산을 수행하며, 그 미분은 다음과 같습니다.
+
+    ​	
+    $$
+    {\delta y\over \delta x} = exp(x)
+    $$
+    ​	계산 그래프에서는 상류의 값에 순전파 때의 출력을 곱해 하류로 전파합니다.
+
+    ​	![img](https://media.vlpt.us/post-images/dscwinterstudy/dc82cea0-41a9-11ea-886e-51c0587d4327/fig-5-193.png)
+
+    **4 단계**
+
+    ​	'x' 노드는 순전파 때의 값을 서로 바꿔 곱합니다.
+
+    ​	![img](https://media.vlpt.us/post-images/dscwinterstudy/1c21b130-41a9-11ea-bc96-9d2b4aed3aec/fig-5-20.png)
+
+    위 그림과 같이 Sigmoid 계층의 역전파를 계산 그래프로 완성했습니다.
+
+    그림에서 보듯이 역전파의 최종 출력인
+    $$
+    {\delta L\over \delta y}y^2exp(-x)
+    $$
+    값이 하류 노드로 전파됩니다.
+
+    여기에서 위 식을 순전파의 입력 x와 출력 y만으로 계산할 수 있습니다.
+
+    그래서 위 그림의 계산 그래프의 중간 과정을 모두 묶어 아래 그림처럼 단순한 sigmoid 노드 하나로 대체할 수 있습니다.
+
+    ![img](https://media.vlpt.us/post-images/dscwinterstudy/20781300-41a9-11ea-baa8-418dfae37ccf/fig-5-21.png)
+
+    위의 계산그래프와 아래의 간소화 버전의 결과는 똑같습니다.
+
+    그러나 간소화 버전은 역전파 과정의 중간 계산들을 생략할 수 있어 더 효율적으로 계산을 할 수 있습니다.
+
+* **Affine / Softmax 계층 구현하기**
+
+  * **Affine 계층**
+
+    신경망의 순전파에서는 가중치 신호의 총합을 계산하기 때문에 행렬의 곱을 사용했습니다.
+
+    ```python
+    X = np.random.rand(2)
+    W = np.random.rand(2, 3)
+    B = np.random.rand(3)
+    
+    X.shape
+    W.shape
+    B.shape
+    
+    Y = np.dot(X, W) + B
+    ```
+
+    여기에서 X, W, B는 각각 형상이 (2,), (2, 3), (3,)인 다차원 배열입니다.
+
+    그러면 뉴런의 가정치 합은 Y = np.dot(X, W) + B 처럼 계산합니다.
+
+    그리고 이 Y를 다시 활성화 함수로 변환해 다음 층으로 전파하는 것이 신경망 순전파의 흐름이었습니다.
+
+    행렬의 곱 계산은 대응하는 차원의 원소 수를 일치시키는 게 핵심입니다.
+
+    
+
+    그럼 앞에서 수행한 계산을 계산 그래프로 그려봅시다.
+
+    곱을 계산하는 노드를 'dot'이라 하면 np.dot(X, W) + B 계산은 아래 그림처럼 그려집니다.
+
+    ![img](https://blog.kakaocdn.net/dn/bTGn9u/btqAKhfApnO/EIHkMsfrdk74BrLsRvPVC0/img.png)
+
+    이는 비교적 단순한 계산 그래프입니다.
+
+    지금까지의 계산 그래프는 노드 사이에 '스칼라값'이 흘렀는데 반해, 이 예에서는 '행렬'이 흐르고 있습니다.
+
+    
+
+    행렬을 사용한 역전파도 행렬의 원소마다 전개해보면 스칼라값을 사용한 지금까지의 계산 그래프와 같은 순서로
+
+    생각할 수 있습니다. 전개해보면 다음 식이 도출됩니다.
+    $$
+    {\delta L \over \delta X} = {\delta L \over \delta Y}.W^T\\
+    {\delta L \over \delta W} = X^T.{\delta L \over \delta Y}
+    $$
+    위 식에서 W^T의 T는 전치행렬을 뜻합니다.
+
+    전치행렬은 W의 (i, j) 위치의 원소를 (j, i)위치로 바꾼 것을 말합니다.
+
+    수식으로는 다음과 같이 쓸 수 있습니다.
+    $$
+    W = \left[
+    \begin{matrix}
+        W_{11} & W_{12} & W_{13}\\
+        W_{21} & W_{22} & W_{23}\\
+    \end{matrix}
+    \right]\\
+    W^T = \left[
+    \begin{matrix}
+        W_{11} & W_{21}\\
+        W_{12} & W_{22}\\
+        W_{13} & W_{23}\\
+    \end{matrix}
+    \right]
+    $$
+    위와 같이 W의 형상이 (2, 3) 이었다면 전치 행렬 W^T의 형상은 (3, 2)가 됩니다.
+
+    
+
+    계산 그래프의 역전파를 구해봅시다.
+
+    결과는 아래 그림처럼 됩니다.
+
+    ![img](https://blog.kakaocdn.net/dn/bBHb0k/btqALvjUUVe/P4srUaWP5vSp7gAXCnNfh0/img.png)
+
+    ![img](https://blog.kakaocdn.net/dn/YXVSh/btqALPPYnZM/gkSUpcquaead8EfKPbkKQ0/img.png)
+
+    이때, 행렬의 곱의 역전파는 행렬에 대응하는 차원의 원소수가 일치하도록 잘 조립해주어야 합니다.
+
+    ![img](https://blog.kakaocdn.net/dn/oHhBI/btqAJvZGwDQ/ajl59KDzcg5opKlhxU1gt0/img.png)
+
+  * **Softmax-with-Loss 계층**
+
+    소프트맥스 함수는 입력 값을 정규화하여 출력합니다.
+
+    예를 들어 손글씨 숫자 인식에서의 Softmax 계층의 출력은 아래 그림처럼 됩니다.
+
+    ![img](https://blog.kakaocdn.net/dn/zGPE4/btqALQH9zso/bpLtNaGnlk61XWurzui000/img.png)
+
+    그림과 같이 Softmax 계층은 입력 값을 정규화하여 출력합니다.
+    
+    또한, 손글씨 숫자는 가짓수가 10개이므로 Softmax 계층의 입력은 10개가 됩니다.
+    
+    먼저 Softmax-with-Loss 계층의 계산 그래프입니다.
+    
+    ![img](https://blog.kakaocdn.net/dn/bpGksi/btqVcrhYzBd/Wg3IzKLpKdilp6AXkWLER0/img.png)
+    
+    위의 계산 그래프는 아래 그림처럼 간소화할 수 있습니다.
+    
+    ![img](https://blog.kakaocdn.net/dn/brXL4X/btqVbXIflGl/Ac0AEvNtk2TQzDY2CV9o6K/img.png)
+    
+    그림의 계산 그래프에서 소프트맥스 함수는 Softmax 계층으로, 교차 엔트로피 오차는 Cross Entropy Error 계층으로
+    
+    표기했습니다.
+    
+    여기에서는 3클래스 분류를 가정하고 이전 계층에서 3개의 입력을 받습니다.
+    
+    그림과 같이 Softmax 계층은 입력(a_1, a_2, a_3)을 정규화하여 (y_1, y_2, y_3)를 출력합니다.
+    
+    Cross Entropy Error 계층은 Softmax의 출력 (y_1, y_2, y_3)와 정답 레이블 (t_1, t_2, t_3)를 받고, 이 데이터들로부터 손실
+    
+    L을 출력합니다.
+    
+    
+    
+    Softmax 계층의 역전파는 (y_1 - t_1, y_2 - t_2, y_3 - t_3)오라는 결과를 말끔한 결과를 내놓고 있습니다.
+    
+    (y_1, y_2, y_3) 는 Softmax 계층의 출력이고 (t_1, t_2, t_3)는 정답 레이블이므로 (y_1 - t_1, y_2 - t_2, y_3 - t_3)는 Softmax
+    
+    계층의 출력과 정답 레이블의 차분인 것입니다.
+    
+    신경망의 역전파에서는 이 차이인 오차가 앞 계층에 전해지는 것입니다.
+    
+    이는 신경망 학습의 중요한 성질입니다.
+    
+    
+    
+    그런데 신경망 학습의 목적은 신경망의 출력이 정답 레이블과 가까워지도록 가중치 매개변수의 값을 조정하는 것이었습니다.
+    
+    그래서 신경망의 출력과 정답 레이블의 오차를 효율적으로 앞 계층에 전달해야 합니다.
+    
+    앞의 (y_1 - t_1, y_2 - t_2, y_3 - t_3)라는 결과는 바로 Softmax 계층의 출력과 정답 레이블의 차이로, 신경망의 현재 출력과
+    
+    정답 레이블의 오차를 있는 그대로 드러내는 것입니다.
+    
+    
+    
+    가령 정답 레이블이 (0, 1, 0) 일 때 Softmax 계층이 (0.3, 0.2, 0.5)를 출력했다고 해봅시다.
+    
+    정답 레이블을 보면 정답의 인덱스는 1입니다. 그런데 출력에서는 이때의 확률이 0.2라서 이 시점의 신경망은 제대로
+    
+    인식하지 못하고 있습니다. 이 경우 Softmax 계층의 역전파는 (0.3, -0.8, 0.5)라는 커다란 오차를 전파합니다.
+    
+    결과적으로 Softmax 계층의 앞 계층들은 그 큰 오차로부터 큰 깨달음을 얻게 됩니다.
+  
+* **오차역전파법 구현하기**
+
+  
